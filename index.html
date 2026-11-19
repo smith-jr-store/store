@@ -550,33 +550,20 @@
 
       function sanitizeDescription(html) {
         const source = new DOMParser().parseFromString(html || "", "text/html");
-        const allowed = new Set(["P", "BR", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "H2", "H3", "H4", "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD", "A"]);
+        const allowed = new Set(["P", "BR", "STRONG", "B", "EM", "I", "UL", "OL", "LI", "H2", "H3", "H4", "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TH", "TD"]);
 
         function copyNode(node) {
-          if (node.nodeType === Node.TEXT_NODE) {
-            const text = (node.textContent || "").replace(/[^.!?]*D[\s-]*TECH[^.!?]*[.!?]?/gi, " ");
-            return document.createTextNode(text);
-          }
+          if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent || "");
           if (node.nodeType !== Node.ELEMENT_NODE) return document.createDocumentFragment();
+          if (node.tagName === "SPAN" && node.textContent.trim().startsWith("Descargar contenido gráfico")) {
+            return document.createDocumentFragment();
+          }
           if (!allowed.has(node.tagName)) {
             const fragment = document.createDocumentFragment();
             node.childNodes.forEach((child) => fragment.append(copyNode(child)));
             return fragment;
           }
           const element = document.createElement(node.tagName.toLowerCase());
-          if (node.tagName === "A") {
-            try {
-              if (node.textContent.trim().startsWith("Descargar contenido gráfico")) return document.createDocumentFragment();
-              const url = new URL(node.getAttribute("href") || "", document.baseURI);
-              if (url.protocol === "https:") {
-                element.href = url.href;
-                element.target = "_blank";
-                element.rel = "noopener noreferrer";
-              }
-            } catch (error) {
-              console.warn("Se omitió un enlace no válido en la descripción del producto.", error);
-            }
-          }
           node.childNodes.forEach((child) => element.append(copyNode(child)));
           return element;
         }
@@ -605,7 +592,7 @@
         dialogActions.append(contactLink);
         dialogDescription.replaceChildren(sanitizeDescription(product.description || product.short_description || ""));
         if (!dialogDescription.textContent.trim()) {
-          dialogDescription.textContent = "El proveedor no ha publicado una descripción para este producto.";
+          dialogDescription.textContent = "No hay una descripción adicional disponible para este producto.";
         }
         dialog.showModal();
       }
